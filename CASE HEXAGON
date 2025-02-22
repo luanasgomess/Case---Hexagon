@@ -1,0 +1,125 @@
+//CRIANDO TABELA NO SQL
+CREATE TABLE Pessoas (
+    Id INT IDENTITY PRIMARY KEY,
+    Nome NVARCHAR(100),
+    Idade INT,
+    EstadoCivil NVARCHAR(50),
+    CPF NVARCHAR(14) UNIQUE,
+    Cidade NVARCHAR(100),
+    Estado NVARCHAR(50)
+);
+
+//BACKEND API EM C#
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+
+[ApiController]
+[Route("api/[controller]")]
+public class PessoasController : ControllerBase
+{
+    private static List<Pessoa> pessoas = new List<Pessoa>();
+
+    [HttpGet]
+    public IActionResult Get() => Ok(pessoas);
+
+    [HttpPost]
+    public IActionResult Post([FromBody] Pessoa pessoa)
+    {
+        pessoas.Add(pessoa);
+        return Ok(pessoa);
+    }
+
+    [HttpPut("{cpf}")]
+    public IActionResult Put(string cpf, [FromBody] Pessoa pessoaAtualizada)
+    {
+        var pessoa = pessoas.Find(p => p.CPF == cpf);
+        if (pessoa == null) return NotFound();
+        
+        pessoa.Nome = pessoaAtualizada.Nome;
+        pessoa.Idade = pessoaAtualizada.Idade;
+        pessoa.EstadoCivil = pessoaAtualizada.EstadoCivil;
+        pessoa.Cidade = pessoaAtualizada.Cidade;
+        pessoa.Estado = pessoaAtualizada.Estado;
+        
+        return Ok(pessoa);
+    }
+
+    [HttpDelete("{cpf}")]
+    public IActionResult Delete(string cpf)
+    {
+        var pessoa = pessoas.Find(p => p.CPF == cpf);
+        if (pessoa == null) return NotFound();
+        
+        pessoas.Remove(pessoa);
+        return NoContent();
+    }
+}
+
+public class Pessoa
+{
+    public string Nome { get; set; }
+    public int Idade { get; set; }
+    public string EstadoCivil { get; set; }
+    public string CPF { get; set; }
+    public string Cidade { get; set; }
+    public string Estado { get; set; }
+}
+
+
+// FRONTEND EM ANGULAR
+
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+interface Pessoa {
+  id?: number;
+  nome: string;
+  idade: number;
+  estadoCivil: string;
+  cpf: string;
+  cidade: string;
+  estado: string;
+}
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent implements OnInit {
+  pessoas: Pessoa[] = [];
+  novaPessoa: Pessoa = { nome: '', idade: 0, estadoCivil: '', cpf: '', cidade: '', estado: '' };
+  apiUrl = 'http://localhost:5000/api/pessoas';
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit() {
+    this.carregarPessoas();
+  }
+
+  carregarPessoas() {
+    this.http.get<Pessoa[]>(this.apiUrl).subscribe(data => this.pessoas = data);
+  }
+
+  adicionarPessoa() {
+    this.http.post<Pessoa>(this.apiUrl, this.novaPessoa).subscribe(() => {
+      this.carregarPessoas();
+      this.novaPessoa = { nome: '', idade: 0, estadoCivil: '', cpf: '', cidade: '', estado: '' };
+    });
+  }
+
+  editarPessoa(pessoa: Pessoa) {
+    this.http.put(`${this.apiUrl}/${pessoa.id}`, pessoa).subscribe(() => this.carregarPessoas());
+  }
+
+  removerPessoa(id: number) {
+    this.http.delete(`${this.apiUrl}/${id}`).subscribe(() => this.carregarPessoas());
+  }
+}
+
+
+
+
+
+
+
